@@ -1,0 +1,51 @@
+version: '3.7'
+services:
+  redpanda:
+    # NOTE: Please use the latest version here!
+    image: vectorized/redpanda
+    container_name: redpanda-1
+    ports:
+      - 9092:9092
+      - 29092:29092
+    command:
+      - redpanda
+      - start
+      - --smp
+      - '1'
+      - --reserve-memory
+      - 0M
+      - --overprovisioned
+      - --node-id
+      - '0'
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:29092,OUTSIDE://redpanda:9092
+  init-redpanda:
+    image: vectorized/redpanda
+    depends_on:
+      - redpanda
+    # networks:
+    #   - red-panda-network
+    command: |
+      "rpk topic create chat-room --brokers=redpanda:9092"
+  producer:
+    image: hspadim/red-panda-producer
+    restart: always
+    tty: true # docker run -t
+    stdin_open: true # docker run -i
+    # networks:
+    #   - red-panda-network
+    depends_on:
+      - redpanda
+      - init-redpanda
+  consumer:
+    image: hspadim/red-panda-consumer
+    restart: always
+    tty: true # docker run -t
+    stdin_open: true # docker run -i
+    # networks:
+    #   - red-panda-network
+    depends_on:
+      - redpanda
+      - init-redpanda
